@@ -1,11 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
-import 'bean/upgrade_info.dart';
+
 import 'bean/init_result_info.dart';
 
 class FlutterBugly {
@@ -15,11 +15,6 @@ class FlutterBugly {
     'crazecoder/flutter_bugly',
   );
 
-  static final StreamController<UpgradeInfo> _onCheckUpgrade =
-      StreamController<UpgradeInfo>.broadcast();
-
-  static int _checkUpgradeCount = 0;
-  static int _count = 0;
   static bool _postCaught = false;
 
   /// 初始化
@@ -45,7 +40,7 @@ class FlutterBugly {
     );
     assert(_postCaught, 'Run postCatchedException first.');
     _channel.setMethodCallHandler(_handleMessages);
-    _checkUpgradeCount = checkUpgradeCount;
+
     Map<String, Object?> map = {
       "appId": Platform.isAndroid ? androidAppId : iOSAppId,
       "channel": channel,
@@ -68,16 +63,6 @@ class FlutterBugly {
   static Future<Null> _handleMessages(MethodCall call) async {
     switch (call.method) {
       case 'onCheckUpgrade':
-        UpgradeInfo? _info = _decodeUpgradeInfo(call.arguments["upgradeInfo"]);
-        if (_info != null && _info.apkUrl != null) {
-          _count = 0;
-          _onCheckUpgrade.add(_info);
-        } else {
-          if (_count < _checkUpgradeCount) {
-            _count++;
-            checkUpgrade(isManual: false);
-          }
-        }
         break;
     }
   }
@@ -113,27 +98,6 @@ class FlutterBugly {
     assert(value.isNotEmpty);
     Map<String, Object> map = {"key": key, "value": value};
     await _channel.invokeMethod('putUserData', map);
-  }
-
-  ///获取本地更新策略，即上次未更新的策略
-  static Future<UpgradeInfo?> getUpgradeInfo() async {
-    final String? result = await _channel.invokeMethod('getUpgradeInfo');
-    var info = _decodeUpgradeInfo(result);
-    return info;
-  }
-
-  /// 检查更新，返回更新策略信息
-  static Future<Null> checkUpgrade({
-    bool isManual = true,
-    bool isSilence = false,
-  }) async {
-    if (!Platform.isAndroid) return null;
-    if (isManual) _count = 0;
-    Map<String, Object> map = {
-      "isManual": isManual, // 用户手动点击检查，非用户点击操作请传 false
-      "isSilence": isSilence, // 是否显示弹窗等交互，[true:没有弹窗和toast] [false:有弹窗或toast]
-    };
-    await _channel.invokeMethod('checkUpgrade', map);
   }
 
   /// 异常上报。该方法等同于 [runZonedGuarded]。
@@ -251,18 +215,7 @@ class FlutterBugly {
     await _channel.invokeMethod('postCatchedException', map);
   }
 
-  static UpgradeInfo? _decodeUpgradeInfo(String? jsonStr) {
-    if (jsonStr == null || jsonStr.isEmpty) return null;
-    Map resultMap = json.decode(jsonStr);
-    var info = UpgradeInfo.fromJson(resultMap as Map<String, dynamic>);
-    return info;
-  }
-
-  static Stream<UpgradeInfo> get onCheckUpgrade => _onCheckUpgrade.stream;
-
   static void dispose() {
-    _count = 0;
-    _onCheckUpgrade.close();
     _postCaught = false;
   }
 }

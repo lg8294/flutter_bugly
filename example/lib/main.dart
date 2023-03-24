@@ -38,14 +38,7 @@ class _HomePageState extends State<HomePage> {
         print(_result.appId);
       });
     });
-    // 当配置 customUpgrade=true 时候，这里可以接收自定义升级
-    FlutterBugly.onCheckUpgrade.listen((_upgradeInfo) {
-      _showUpdateDialog(
-        _upgradeInfo.newFeature,
-        _upgradeInfo.apkUrl!,
-        _upgradeInfo.upgradeType == 2,
-      );
-    });
+
     FlutterBugly.setUserId("user id");
     FlutterBugly.putUserData(key: "key", value: "value");
     int tag = 9527;
@@ -67,7 +60,7 @@ class _HomePageState extends State<HomePage> {
       body: GestureDetector(
         onTap: () {
           if (Platform.isAndroid) {
-            _checkUpgrade();
+            // _checkUpgrade();
           }
         },
         child: Center(
@@ -83,11 +76,6 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (_) => _buildDialog(version, url, isForceUpgrade),
     );
-  }
-
-  void _checkUpgrade() {
-    print("获取更新中。。。");
-    FlutterBugly.checkUpgrade();
   }
 
   Widget _buildDialog(String version, String url, bool isForceUpgrade) {

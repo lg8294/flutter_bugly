@@ -22,49 +22,29 @@ class FlutterBugly {
     String? androidAppId,
     String? iOSAppId,
     String? channel, // 自定义渠道标识
-    bool autoCheckUpgrade = true,
-    bool autoInit = true,
-    bool autoDownloadOnWifi = false,
-    bool enableHotfix = false,
-    bool enableNotification = false, // 未适配 androidx
-    bool showInterruptedStrategy = true, // 设置开启显示打断策略
-    bool canShowApkInfo = true, // 设置是否显示弹窗中的 apk 信息
-    int initDelay = 0, // 延迟初始化，单位秒
-    int upgradeCheckPeriod = 0, //升级检查周期设置，单位秒
-    int checkUpgradeCount = 1, // UpgradeInfo 为 null 时，再次 check 的次数，经测试 1 为最佳
-    bool customUpgrade = true, // 是否自定义升级，这里默认 true 为了兼容老版本
+    String? deviceId,
+    String? deviceModel,
+    int reportDelay = 10000, // Bugly会在启动10s后联网同步数据。若您有特别需求，可以修改这个时间。单位毫秒
+    bool isDebug = false,
   }) async {
     assert(
       (Platform.isAndroid && androidAppId != null) ||
           (Platform.isIOS && iOSAppId != null),
     );
     assert(_postCaught, 'Run postCatchedException first.');
-    _channel.setMethodCallHandler(_handleMessages);
 
     Map<String, Object?> map = {
       "appId": Platform.isAndroid ? androidAppId : iOSAppId,
       "channel": channel,
-      "autoCheckUpgrade": autoCheckUpgrade,
-      "autoDownloadOnWifi": autoDownloadOnWifi,
-      "enableHotfix": enableHotfix,
-      "enableNotification": enableNotification,
-      "showInterruptedStrategy": showInterruptedStrategy,
-      "canShowApkInfo": canShowApkInfo,
-      "initDelay": initDelay,
-      "upgradeCheckPeriod": upgradeCheckPeriod,
-      "customUpgrade": customUpgrade,
+      "deviceId": deviceId,
+      "deviceModel": deviceModel,
+      "reportDelay": reportDelay,
+      "isDebug": isDebug,
     };
-    final dynamic result = await _channel.invokeMethod('initBugly', map);
+    final result = await _channel.invokeMethod('initBugly', map);
     Map resultMap = json.decode(result);
     var resultBean = InitResultInfo.fromJson(resultMap as Map<String, dynamic>);
     return resultBean;
-  }
-
-  static Future<Null> _handleMessages(MethodCall call) async {
-    switch (call.method) {
-      case 'onCheckUpgrade':
-        break;
-    }
   }
 
   /// 自定义渠道标识，Android 专用
@@ -73,6 +53,24 @@ class FlutterBugly {
     if (Platform.isAndroid) {
       Map<String, Object> map = {"channel": channel};
       await _channel.invokeMethod('setAppChannel', map);
+    }
+  }
+
+  /// 设备设备 ID，Android 专用
+  static Future<Null> setDeviceId(String deviceId) async {
+    assert(Platform.isAndroid, 'setDeviceId only supports on Android.');
+    if (Platform.isAndroid) {
+      Map<String, Object> map = {"deviceId": deviceId};
+      await _channel.invokeMethod('setDeviceId', map);
+    }
+  }
+
+  /// 设备设备 Model，Android 专用
+  static Future<Null> setDeviceModel(String deviceModel) async {
+    assert(Platform.isAndroid, 'setDeviceModel only supports on Android.');
+    if (Platform.isAndroid) {
+      Map<String, Object> map = {"deviceModel": deviceModel};
+      await _channel.invokeMethod('setDeviceModel', map);
     }
   }
 

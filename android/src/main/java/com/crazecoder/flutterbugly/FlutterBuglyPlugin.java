@@ -10,9 +10,6 @@ import com.crazecoder.flutterbugly.utils.JsonUtil;
 import com.crazecoder.flutterbugly.utils.MapUtil;
 import com.tencent.bugly.crashreport.CrashReport;
 
-import java.util.Objects;
-
-import io.flutter.BuildConfig;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -50,19 +47,19 @@ public class FlutterBuglyPlugin implements FlutterPlugin, MethodCallHandler {
         switch (call.method) {
             case "initBugly":
                 if (call.hasArgument("appId")) {
-                    String appId = Objects.requireNonNull(call.argument("appId")).toString();
-                    Boolean isDebug = Objects.requireNonNull(call.argument("isDebug"));
+                    String appId = call.argument("appId");
+                    boolean isDebug = call.argument("isDebug") == Boolean.TRUE;
                     CrashReport.UserStrategy userStrategy = new CrashReport.UserStrategy(getContext());
-                    userStrategy.setAppChannel(call.argument("channel"));
-                    userStrategy.setDeviceID(call.argument("deviceId"));
-                    userStrategy.setDeviceModel(call.argument("deviceModel"));
+                    userStrategy.setAppChannel((String) call.argument("channel"));
+                    userStrategy.setDeviceID((String) call.argument("deviceId"));
+                    userStrategy.setDeviceModel((String) call.argument("deviceModel"));
                     if (call.hasArgument("reportDelay")) {
                         Integer reportDelay = call.argument("reportDelay");
                         if (reportDelay != null) {
                             userStrategy.setAppReportDelay(reportDelay);
                         }
                     }
-                    CrashReport.setIsDevelopmentDevice(getContext(),isDebug);
+                    CrashReport.setIsDevelopmentDevice(getContext(), isDebug);
                     CrashReport.initCrashReport(getContext(), appId, isDebug, userStrategy);
 
                     result.success(JsonUtil.toJson(MapUtil.deepToMap(getResultBean(true, appId, "Bugly 初始化成功"))));
